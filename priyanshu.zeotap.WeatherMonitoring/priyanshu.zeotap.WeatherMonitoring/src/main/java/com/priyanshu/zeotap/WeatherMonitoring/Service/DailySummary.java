@@ -25,8 +25,4 @@ public class DailySummary {
         return temperatures.stream().mapToDouble(Double::doubleValue).min().orElse(0);
     }
 
-    public String getDominantCondition() {
-        // You can add logic to find the most frequent condition if needed
-        return dominantCondition;
-    }
 }
