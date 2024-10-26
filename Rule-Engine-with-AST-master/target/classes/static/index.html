@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Rule Engine with AST</title>
+    <style>
+        body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f9;
+    color: #333;
+}
+
+.container {
+    max-width: 600px;
+    margin: 20px auto;
+    padding: 15px;
+
+    background-color: #fff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+}
+
+h1, h2 {
+    text-align: center;
+    color: #2067a9;
+}
+
+form {
+    margin: 0;
+}
+
+form div, form label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+form input[type="text"], form textarea, form select {
+    width: calc(100% - 18px);
+    padding: 8px;
+    margin: 0;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+form textarea {
+    height: 80px;
+}
+
+form button {
+    display: block;
+    width: 100%;
+    padding: 8px;
+    margin-top: 10px;
+    border: none;
+    background-color: #2067a9;
+    color: #fff;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+form button:hover {
+    background-color: #2067a9;
+}
+
+pre {
+    background-color: #f4f4f9;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.rule-container {
+    border: 1px solid #ddd;
+    padding: 8px;
+    border-radius: 4px;
+    background-color: #fafafa;
+    margin-bottom: 8px;
+}
+
+.rule-container label {
+    margin-right: 8px;
+}
+
+#add-rule {
+    margin-top: 10px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .container {
+        padding: 10px;
+    }
+
+    form input[type="text"], form textarea, form select {
+        width: calc(100% - 16px);
+        padding: 6px;
+    }
+
+    form button {
+        padding: 6px;
+        font-size: 12px;
+    }
+
+    form textarea {
+        height: 60px;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: 5px;
+        margin: 10px;
+    }
+
+    form input[type="text"], form textarea, form select {
+        width: calc(100% - 14px);
+        padding: 5px;
+    }
+
+    form button {
+        padding: 5px;
+        font-size: 10px;
+    }
+
+    form textarea {
+        height: 50px;
+    }
+}
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Rule Engine Application</h1>
+
+    <h2>Create Rule</h2>
+    <form id="create-rule-form">
+        <div>
+            <label for="ruleName">Rule Name:</label>
+            <input type="text" id="ruleName" name="ruleName" required>
+        </div>
+        <div>
+            <label for="ruleString">Rule:</label>
+            <input type="text" id="ruleString" name="ruleString" required>
+        </div>
+        <button type="submit">Create Rule</button>
+    </form>
+    <pre id="create-rule-result"></pre>
+
+    <h2>Combine Rules</h2>
+    <form id="combine-rules-form">
+        <h3>Enter Rules to Combine:</h3>
+        <div id="rules-inputs">
+            <div class="rule-container">
+                <label for="combine-rule-1">Rule 1:</label>
+                <input type="text" id="combine-rule-1" name="rule1" required>
+                <label for="operator1">Operator:</label>
+                <select id="operator1" name="operator1">
+                    <option value="AND">AND</option>
+                    <option value="OR">OR</option>
+                </select>
+            </div>
+        </div>
+        <button type="button" id="add-rule">Add Another Rule</button>
+        <button type="submit">Combine Rules</button>
+    </form>
+    <pre id="combine-rules-result"></pre>
+
+
+    <h2>Combined Rules AST Tree</h2>
+    <div id="combined-rules-tree"></div>
+
+
+    <h2>Evaluate Rule</h2>
+    <form id="evaluate-rule-form">
+        <div>
+            <label for="evaluate-ast">Rule Name:</label>
+            <input type="text" id="evaluate-ast" name="ast" required>
+        </div>
+        <div>
+            <label for="evaluate-data">Data JSON:</label>
+            <textarea id="evaluate-data" name="data" required></textarea>
+        </div>
+        <button type="submit">Evaluate Rule</button>
+    </form>
+    <pre id="evaluate-rule-result"></pre>
+</div>
+<script>
+<!--    // Function to generate tree HTML from AST structure-->
+<!--function generateTreeHTML(node, prefix = '', isLeft = true) {-->
+<!--    if (!node) return '';-->
+
+<!--    let treeHTML = '';-->
+<!--    treeHTML += prefix + (isLeft ? "├── " : "└── ") +-->
+<!--        (node.type === 'operator' ? node.operator : `${node.key} ${node.operator} ${node.value}`) + '<br>';-->
+
+<!--    if (node.left) {-->
+<!--        treeHTML += generateTreeHTML(node.left, prefix + (isLeft ? "│   " : "    "), true);-->
+<!--    }-->
+<!--    if (node.right) {-->
+<!--        treeHTML += generateTreeHTML(node.right, prefix + (isLeft ? "│   " : "    "), false);-->
+<!--    }-->
+
+<!--    return treeHTML;-->
+<!--}-->
+
+<!--// Function to display the generated AST tree in HTML-->
+<!--function displayTree(tree) {-->
+<!--    const treeHTML = generateTreeHTML(tree);-->
+<!--    document.getElementById('combined-rules-tree').innerHTML = treeHTML;-->
+<!--}-->
+
+
+
+<!--  // Handle Create Rule form submission-->
+<!--document.getElementById('create-rule-form').addEventListener('submit', async function(event) {-->
+<!--    event.preventDefault();-->
+
+<!--    const ruleName = document.getElementById('ruleName').value;-->
+<!--    const ruleString = document.getElementById('ruleString').value;-->
+
+<!--    // Log to check the values before sending-->
+<!--    console.log("Rule Name:", ruleName);-->
+<!--    console.log("Rule String:", ruleString);-->
+
+<!--    // Create the request body as an object-->
+<!--    const requestBody = {-->
+<!--        ruleName: ruleName,-->
+<!--        rule: ruleString  // Assuming you want to send ruleString as 'rule'-->
+<!--    };-->
+
+<!--    const response = await fetch('/api/rules/create', {-->
+<!--        method: 'POST',-->
+<!--        headers: {-->
+<!--            'Content-Type': 'application/json',-->
+<!--        },-->
+<!--        body: JSON.stringify(requestBody),  // Correct usage of JSON.stringify()-->
+<!--    });-->
+
+<!--    const result = await response.json();-->
+
+<!--    // Assuming you correctly receive the AST here-->
+<!--    let treeHTML = generateTreeHTML(result.ruleAST);-->
+
+<!--    // Check if ruleName exists in the response-->
+<!--    if (result.ruleName) {-->
+<!--        treeHTML += `<br><p>Rule Name: ${result.ruleName}</p>`;-->
+<!--    } else {-->
+<!--        treeHTML += `<br><p>Rule Name: Not Provided</p>`;-->
+<!--    }-->
+
+<!--    document.getElementById('create-rule-result').innerHTML = treeHTML;-->
+<!--});-->
+
+// Function to generate tree HTML from AST structure
+function generateTreeHTML(node, prefix = '', isLeft = true) {
+    if (!node) return '';
+
+    let treeHTML = '';
+    treeHTML += prefix + (isLeft ? "├── " : "└── ") +
+        (node.type === 'operator' ? node.operator : `${node.key} ${node.operator} ${node.value}`) + '<br>';
+
+    if (node.left) {
+        treeHTML += generateTreeHTML(node.left, prefix + (isLeft ? "│   " : "    "), true);
+    }
+    if (node.right) {
+        treeHTML += generateTreeHTML(node.right, prefix + (isLeft ? "│   " : "    "), false);
+    }
+
+    return treeHTML;
+}
+
+// Function to display the generated AST tree in HTML
+function displayTree(tree) {
+    const treeHTML = generateTreeHTML(tree);
+    document.getElementById('combined-rules-tree').innerHTML = treeHTML;
+}
+
+// Handle Create Rule form submission
+document.getElementById('create-rule-form').addEventListener('submit', async function(event) {
+    event.preventDefault();
+
+    const ruleName = document.getElementById('ruleName').value;
+    const ruleString = document.getElementById('ruleString').value;
+
+    // Log to check the values before sending
+    console.log("Rule Name:", ruleName);
+    console.log("Rule String:", ruleString);
+
+    // Create the request body as an object
+    const requestBody = {
+        ruleName: ruleName,
+        rule: ruleString  // Assuming you want to send ruleString as 'rule'
+    };
+
+    try {
+        const response = await fetch('/api/rules/create', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestBody),  // Correct usage of JSON.stringify()
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to create rule');
+        }
+
+        const result = await response.json();
+
+        // Assuming the response contains the AST tree in `ruleAST`
+        let treeHTML = generateTreeHTML(result.ruleAST);
+
+        // Display the rule name in the result if it's available
+        if (result.ruleName) {
+            treeHTML += `<br><p>Rule Name: ${result.ruleName}</p>`;
+        } else {
+            treeHTML += `<br><p>Rule Name: Not Provided</p>`;
+        }
+
+        // Update the DOM with the generated HTML
+        document.getElementById('create-rule-result').innerHTML = treeHTML;
+    } catch (error) {
+        // Handle error case
+        console.error("Error creating rule:", error);
+        document.getElementById('create-rule-result').innerHTML = `<p>Error: ${error.message}</p>`;
+    }
+});
+
+<!--      // Handle Combine Rules form submission-->
+
+<!--document.getElementById('combine-rules-form').addEventListener('submit', async function(event) {-->
+<!--            event.preventDefault();-->
+<!--            const op = document.getElementById('operator1').value;-->
+<!--            const rules = Array.from(document.querySelectorAll('input[id^="combine-rule"]')).map(input => input.value);-->
+
+<!--            try {-->
+<!--                const response = await fetch('/api/rules/combine', {-->
+<!--                    method: 'POST',-->
+<!--                    headers: {-->
+<!--                        'Content-Type': 'application/json',-->
+<!--                    },-->
+<!--                    body: JSON.stringify({ rules, op }),-->
+<!--                });-->
+<!--                if (!response.ok) {-->
+<!--                    throw new Error('Failed to combine rules');-->
+<!--                }-->
+<!--                const result = await response.json();-->
+<!--                let treeHTML = generateTreeHTML(result.ruleAST);-->
+<!--                treeHTML += `<br><p>Rule Name: ${result.ruleName}</p>`;-->
+<!--                document.getElementById('combine-rules-result').innerHTML = treeHTML;-->
+<!--            } catch (error) {-->
+<!--                document.getElementById('combine-rules-result').textContent = 'Error: ' + error.message;-->
+<!--            }-->
+<!--        });-->
+
+<!--// Add functionality to dynamically add more rule inputs-->
+<!--document.getElementById('add-rule').addEventListener('click', function() {-->
+<!--    const ruleInputContainer = document.createElement('div');-->
+<!--    ruleInputContainer.classList.add('rule-container');-->
+
+<!--    // Count the current number of rules and generate a new input-->
+<!--    const ruleCount = document.querySelectorAll('input[id^="combine-rule"]').length + 1;-->
+<!--    ruleInputContainer.innerHTML = `-->
+<!--        <label for="combine-rule${ruleCount}">Rule ${ruleCount}:</label>-->
+<!--        <input type="text" id="combine-rule${ruleCount}" name="rule${ruleCount}" required>-->
+<!--    `;-->
+
+<!--    // Append the new input to the container-->
+<!--    document.getElementById('rules-inputs').appendChild(ruleInputContainer);-->
+<!--});-->
+
+// Handle Combine Rules form submission
+document.getElementById('combine-rules-form').addEventListener('submit', async function(event) {
+    event.preventDefault();
+
+    const op = document.getElementById('operator1').value;
+    const rules = Array.from(document.querySelectorAll('input[id^="combine-rule"]')).map(input => input.value);
+
+    // Ensure exactly two rules are provided, if required
+    if (rules.length !== 2) {
+        document.getElementById('combine-rules-result').textContent = 'Error: Please provide exactly two rules to combine.';
+        return;
+    }
+
+    const [rule1, rule2] = rules; // Map the two rules for the request payload
+
+    try {
+        const response = await fetch('/api/rules/combine', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ rule1, rule2, operator: op }),
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to combine rules');
+        }
+
+        const result = await response.json();
+        let treeHTML = generateTreeHTML(result.ruleAST);
+        treeHTML += `<br><p>Rule Name: ${result.ruleName}</p>`;
+        document.getElementById('combine-rules-result').innerHTML = treeHTML;
+    } catch (error) {
+        document.getElementById('combine-rules-result').textContent = 'Error: ' + error.message;
+    }
+});
+
+// Add functionality to dynamically add more rule inputs
+document.getElementById('add-rule').addEventListener('click', function() {
+    const ruleInputContainer = document.createElement('div');
+    ruleInputContainer.classList.add('rule-container');
+
+    // Count the current number of rules and generate a new input
+    const ruleCount = document.querySelectorAll('input[id^="combine-rule"]').length + 1;
+    ruleInputContainer.innerHTML = `
+        <label for="combine-rule${ruleCount}">Rule ${ruleCount}:</label>
+        <input type="text" id="combine-rule${ruleCount}" name="rule${ruleCount}" required>
+    `;
+
+    // Append the new input to the container
+    document.getElementById('rules-inputs').appendChild(ruleInputContainer);
+});
+
+
+       // Handle Evaluate Rule form submission
+document.getElementById('evaluate-rule-form').addEventListener('submit', async function(event) {
+    event.preventDefault();
+    const ast = document.getElementById('evaluate-ast').value.trim();
+    const data = document.getElementById('evaluate-data').value.trim();
+
+    // Validate input
+    if (!ast || !data) {
+        document.getElementById('evaluate-rule-result').textContent = 'Error: AST and data fields cannot be empty.';
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/rules/evaluate', { // Make sure this matches your backend endpoint
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ ast, data: JSON.parse(data) }),
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to evaluate rule: ' + response.statusText);
+        }
+
+        const result = await response.json();
+        document.getElementById('evaluate-rule-result').textContent = JSON.stringify(result, null, 2);
+    } catch (error) {
+        console.error('Error occurred:', error); // Log the error to the console
+        document.getElementById('evaluate-rule-result').textContent = 'Error: ' + error.message;
+    }
+});
+
+
+</script>
+</body>
+</html>
